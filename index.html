@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub 驱动的个人博客</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0c1116;
+      --panel: #111821;
+      --text: #e6edf3;
+      --muted: #9ba9b4;
+      --accent: #4f9cf7;
+      --border: #1f2a36;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(120% 120% at 10% 20%, rgba(79, 156, 247, 0.08), transparent 40%),
+        radial-gradient(120% 120% at 80% 0%, rgba(18, 208, 199, 0.12), transparent 40%),
+        var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0.5px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    input:focus,
+    textarea:focus,
+    button:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 600;
+      border: none;
+      background: linear-gradient(120deg, #4f9cf7, #21c7c2);
+      color: #0b1320;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 30px rgba(79, 156, 247, 0.3);
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .row button {
+      width: auto;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .list button {
+      text-align: left;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .editor {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    textarea {
+      min-height: 360px;
+      resize: vertical;
+      line-height: 1.5;
+      font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+    }
+
+    .preview {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      min-height: 360px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    .preview h1,
+    .preview h2,
+    .preview h3 {
+      margin-top: 1.2em;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .badge-success {
+      color: #19d68c;
+    }
+
+    .badge-error {
+      color: #ff7b7b;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>GitHub 驱动的个人博客</h1>
+      <p style="margin: 4px 0 0; color: var(--muted);">直接从 GitHub 仓库读取 Markdown 文章，可在线浏览、编辑和下载。</p>
+    </div>
+    <div class="pill">
+      <span>无需服务端 · 静态托管</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card stack">
+      <div class="stack">
+        <div>
+          <label for="owner">GitHub 用户/组织</label>
+          <input id="owner" placeholder="如：your-github-id" />
+        </div>
+        <div>
+          <label for="repo">仓库名</label>
+          <input id="repo" placeholder="如：my-blog" />
+        </div>
+        <div>
+          <label for="branch">分支</label>
+          <input id="branch" value="main" />
+        </div>
+        <div>
+          <label for="path">文章目录（仓库内路径）</label>
+          <input id="path" value="posts" placeholder="如：content/posts" />
+        </div>
+        <div>
+          <label for="token">可选：GitHub Token（仅保存在当前会话）</label>
+          <input
+            id="token"
+            type="password"
+            placeholder="ghp_xxx，提升速率限制，切勿在公用设备使用"
+            autocomplete="off"
+          />
+        </div>
+        <div class="row">
+          <button id="loadPosts">加载文章列表</button>
+          <button id="newPost" class="secondary">新建空白草稿</button>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="status" id="status">等待加载文章…</div>
+        <div class="list" id="postsList" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <div class="row" style="justify-content: space-between; align-items: center;">
+        <div class="stack" style="flex: 1;">
+          <label for="activeFile" style="margin: 0;">当前文件</label>
+          <input id="activeFile" readonly placeholder="选择或新建文章" />
+        </div>
+        <div class="row" style="gap: 6px;">
+          <button id="downloadMd" class="secondary">下载 Markdown</button>
+          <button id="copyHtml" class="secondary">复制 HTML</button>
+        </div>
+      </div>
+      <div class="editor">
+        <div class="stack">
+          <label for="editor">编辑器</label>
+          <textarea id="editor" placeholder="在这里编辑 Markdown…"></textarea>
+        </div>
+        <div class="stack">
+          <label for="preview">预览</label>
+          <div id="preview" class="preview"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const ownerInput = document.getElementById('owner');
+    const repoInput = document.getElementById('repo');
+    const branchInput = document.getElementById('branch');
+    const pathInput = document.getElementById('path');
+    const postsList = document.getElementById('postsList');
+    const status = document.getElementById('status');
+    const editor = document.getElementById('editor');
+    const preview = document.getElementById('preview');
+    const activeFileInput = document.getElementById('activeFile');
+    const tokenInput = document.getElementById('token');
+    const loadPostsBtn = document.getElementById('loadPosts');
+    const newPostBtn = document.getElementById('newPost');
+    const downloadBtn = document.getElementById('downloadMd');
+    const copyHtmlBtn = document.getElementById('copyHtml');
+
+    const LS_KEY = 'github-blog-config';
+
+    function loadSavedConfig() {
+      try {
+        const saved = localStorage.getItem(LS_KEY);
+        if (!saved) return;
+        const { owner, repo, branch, path } = JSON.parse(saved);
+        ownerInput.value = owner || '';
+        repoInput.value = repo || '';
+        branchInput.value = branch || 'main';
+        pathInput.value = path || 'posts';
+      } catch (e) {
+        console.warn('无法读取本地配置', e);
+      }
+      try {
+        const token = sessionStorage.getItem('github-token');
+        if (token) tokenInput.value = token;
+      } catch (e) {
+        console.warn('无法读取 token', e);
+      }
+    }
+
+    function saveConfig() {
+      const payload = {
+        owner: ownerInput.value.trim(),
+        repo: repoInput.value.trim(),
+        branch: branchInput.value.trim() || 'main',
+        path: pathInput.value.trim() || 'posts',
+      };
+      localStorage.setItem(LS_KEY, JSON.stringify(payload));
+      try {
+        if (tokenInput.value.trim()) {
+          sessionStorage.setItem('github-token', tokenInput.value.trim());
+        } else {
+          sessionStorage.removeItem('github-token');
+        }
+      } catch (e) {
+        console.warn('无法保存 token', e);
+      }
+    }
+
+    function setStatus(message, type = 'info') {
+      status.textContent = message;
+      status.className = 'status';
+      if (type === 'success') status.classList.add('badge-success');
+      if (type === 'error') status.classList.add('badge-error');
+    }
+
+    function renderPreview(value) {
+      preview.innerHTML = marked.parse(value || '', { breaks: true, gfm: true });
+    }
+
+    function buildHeaders() {
+      const headers = {};
+      const token = tokenInput.value.trim();
+      if (token) {
+        headers.Authorization = `token ${token}`;
+      }
+      return headers;
+    }
+
+    async function fetchPosts() {
+      const owner = ownerInput.value.trim();
+      const repo = repoInput.value.trim();
+      const branch = branchInput.value.trim() || 'main';
+      const path = pathInput.value.trim() || 'posts';
+
+      if (!owner || !repo) {
+        setStatus('请填写 GitHub 用户/组织 和 仓库名。', 'error');
+        return;
+      }
+
+      saveConfig();
+      postsList.innerHTML = '';
+      setStatus('加载文章列表中…');
+
+      const api = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+      try {
+        const res = await fetch(api, { headers: buildHeaders() });
+        if (!res.ok) {
+          throw new Error(`加载失败：${res.status}`);
+        }
+        const files = await res.json();
+        const markdownFiles = files.filter((file) => file.type === 'file' && /\.md$/i.test(file.name));
+
+        if (!markdownFiles.length) {
+          setStatus('未在目录中找到 Markdown 文件，可以在 GitHub 上传后再试。', 'error');
+          return;
+        }
+
+        markdownFiles.forEach((file) => {
+          const btn = document.createElement('button');
+          btn.textContent = file.name;
+          btn.addEventListener('click', () => loadPost(file.name));
+          postsList.appendChild(btn);
+        });
+
+        setStatus(`已加载 ${markdownFiles.length} 篇文章。`, 'success');
+      } catch (error) {
+        setStatus(error.message, 'error');
+      }
+    }
+
+    async function loadPost(fileName) {
+      const owner = ownerInput.value.trim();
+      const repo = repoInput.value.trim();
+      const branch = branchInput.value.trim() || 'main';
+      const path = pathInput.value.trim() || 'posts';
+
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}/${fileName}`;
+      setStatus(`正在加载 ${fileName}…`);
+      try {
+        const res = await fetch(rawUrl, { headers: buildHeaders() });
+        if (!res.ok) throw new Error('无法读取文件内容');
+        const text = await res.text();
+        editor.value = text;
+        activeFileInput.value = `${path}/${fileName}`;
+        renderPreview(text);
+        setStatus('加载完成，可以编辑内容。', 'success');
+      } catch (error) {
+        setStatus(error.message, 'error');
+      }
+    }
+
+    function newDraft() {
+      const template = `---\ntitle: 新文章\ndate: ${new Date().toISOString().slice(0, 10)}\ntags: []\n---\n\n这里开始写正文，支持 Markdown。`;
+      editor.value = template;
+      renderPreview(template);
+      activeFileInput.value = 'posts/new-article.md (未保存)';
+      setStatus('已生成空白草稿，编辑完成后下载并上传到 GitHub。', 'success');
+    }
+
+    function downloadMarkdown() {
+      const content = editor.value;
+      const fileName = (activeFileInput.value.split('/').pop() || 'article.md').replace(' (未保存)', '');
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus('已下载 Markdown，可上传到 GitHub。', 'success');
+    }
+
+    async function copyHtml() {
+      const html = marked.parse(editor.value || '');
+      try {
+        await navigator.clipboard.writeText(html);
+        setStatus('已复制 HTML 到剪贴板。', 'success');
+      } catch (e) {
+        setStatus('复制失败，请检查浏览器权限。', 'error');
+      }
+    }
+
+    editor.addEventListener('input', (event) => {
+      renderPreview(event.target.value);
+    });
+
+    loadPostsBtn.addEventListener('click', fetchPosts);
+    newPostBtn.addEventListener('click', newDraft);
+    downloadBtn.addEventListener('click', downloadMarkdown);
+    copyHtmlBtn.addEventListener('click', copyHtml);
+
+    renderPreview('');
+    loadSavedConfig();
+  </script>
+</body>
+</html>
